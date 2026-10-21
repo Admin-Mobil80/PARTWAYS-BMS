@@ -1,5 +1,5 @@
 // PartWays BMS: sign-in, navigation shell and hash routing.
-import { api, h, mount, toast, store, applyPrefs, watchForUpdates, ApiError } from './lib.js';
+import { api, h, mount, toast, store, watchForUpdates, ApiError } from './lib.js';
 import * as views from './views.js';
 
 export const state = { token: store.get('pw.bms.token'), email: store.get('pw.bms.email'), role: null };
@@ -139,6 +139,5 @@ async function start() {
   route();
 }
 
-applyPrefs();
 watchForUpdates({ message: 'A new version of the PartWays BMS is available.' });
 if (state.token) start(); else loginScreen();
