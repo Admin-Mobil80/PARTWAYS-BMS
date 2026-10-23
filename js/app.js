@@ -20,7 +20,7 @@ export async function bms(path, opts = {}) {
   }
 }
 
-const mark = () => h('a', { class: 'pw-mark', href: '#/' }, h('span', { class: 'dot' }, 'P'), 'PartWays BMS');
+const mark = () => h('a', { class: 'pw-mark', href: '#/' }, h('span', { class: 'dot', 'aria-hidden': 'true' }, 'PW'), 'PartWays BMS');
 
 // --- Sign-in: email, then the 6-digit code ---------------------------------
 function loginScreen() {
