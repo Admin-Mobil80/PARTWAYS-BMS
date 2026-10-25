@@ -67,7 +67,8 @@ export async function organisations() {
     { label: 'Revenue', num: true, cell: (r) => money(r.revenueUsd) },
     { label: 'Last activity', cell: (r) => fmt.date(r.lastActivityAt) },
     // The same dialog as on the organisation's page, without opening it first.
-    { label: '', cell: (r) => h('button', { class: 'btn sm', type: 'button', style: { whiteSpace: 'nowrap' }, 'aria-label': `Add credits for ${r.name}`, onclick: (e) => { e.stopPropagation(); adjustCredits(r); }, onkeydown: (e) => e.stopPropagation() }, 'Add credits') },
+    { label: '', cell: (r) => [r.openRequest ? h('span', { class: 'badge warn', style: { marginRight: '.4rem', whiteSpace: 'nowrap' }, title: `Requested by ${r.openRequest.by} on ${fmt.date(r.openRequest.at)}` }, r.openRequest.credits ? `Requested ${n(r.openRequest.credits)}` : 'Requested') : null,
+      h('button', { class: 'btn sm', type: 'button', style: { whiteSpace: 'nowrap' }, 'aria-label': `Add credits for ${r.name}`, onclick: (e) => { e.stopPropagation(); adjustCredits(r); }, onkeydown: (e) => e.stopPropagation() }, 'Add credits')] },
   ];
   const show = (q = '') => {
     const t = q.trim().toLowerCase();
@@ -96,6 +97,8 @@ export async function organisation(id) {
   return h('div', { class: 'stack' },
     head(o.name, `${country(o.country)} · signed up ${fmt.date(o.createdAt)}`,
       h('button', { class: 'btn primary', type: 'button', onclick: () => adjustCredits(o) }, 'Adjust credits')),
+    o.openRequest ? h('div', { class: 'notice warn' }, `${o.openRequest.by} asked for ${o.openRequest.credits ? plural(o.openRequest.credits, 'more credit') : 'more credits'} on ${fmt.dateTime(o.openRequest.at)}.`,
+      o.openRequest.note ? ` “${o.openRequest.note}”` : '', ' Adding credits closes the request.') : null,
     h('div', { class: 'stats' },
       stat('Credits left', n(o.creditBalance)),
       stat('Invitations sent', n(o.invitationsSent)),
@@ -210,6 +213,8 @@ const ACTION = {
   credits_free: (a) => [`${plural(a.delta, 'free credit')} on sign-up for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`],
   credits_bought: (a) => [`Bought ${plural(a.delta, 'credit')} for ${money(a.amountUsd)} for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`,
     a.simulated ? h('span', { class: 'badge', style: { marginLeft: '.4rem' } }, 'Test') : null],
+  credits_requested: (a) => [`Requested ${a.credits ? plural(a.credits, 'credit') : 'more credits'} for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), a.note ? ` (“${a.note}”)` : '',
+    h('span', { class: `badge ${a.status === 'open' ? 'warn' : ''}`, style: { marginLeft: '.4rem' } }, a.status === 'open' ? 'Open' : 'Done')],
   credits_used: (a) => [`Used 1 credit for invitation ${a.interviewId || ''} at `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`],
 };
 const AUDIT_FILTERS = [
@@ -217,6 +222,7 @@ const AUDIT_FILTERS = [
   ['credits_used', 'Credits used'],
   ['credits_bought', 'Credits bought'],
   ['credits_free', 'Free credits'],
+  ['credits_requested', 'Credit requests'],
   ['credits_adjusted', 'Adjusted by PartWays'],
   ['team', 'Team changes'],
 ];
