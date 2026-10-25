@@ -66,6 +66,8 @@ export async function organisations() {
     { label: 'Interviews', num: true, cell: (r) => n(r.interviewsCompleted) },
     { label: 'Revenue', num: true, cell: (r) => money(r.revenueUsd) },
     { label: 'Last activity', cell: (r) => fmt.date(r.lastActivityAt) },
+    // The same dialog as on the organisation's page, without opening it first.
+    { label: '', cell: (r) => h('button', { class: 'btn sm', type: 'button', style: { whiteSpace: 'nowrap' }, 'aria-label': `Add credits for ${r.name}`, onclick: (e) => { e.stopPropagation(); adjustCredits(r); }, onkeydown: (e) => e.stopPropagation() }, 'Add credits') },
   ];
   const show = (q = '') => {
     const t = q.trim().toLowerCase();
