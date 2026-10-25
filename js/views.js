@@ -207,16 +207,41 @@ const ACTION = {
   credits_adjusted: (a) => [`${a.delta > 0 ? 'Added' : 'Removed'} ${plural(Math.abs(a.delta), 'credit')} for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)}). ${a.reason}`],
   team_member_added: (a) => `Added ${a.member} to the team`,
   team_member_removed: (a) => `Removed ${a.member} from the team`,
+  credits_free: (a) => [`${plural(a.delta, 'free credit')} on sign-up for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`],
+  credits_bought: (a) => [`Bought ${plural(a.delta, 'credit')} for ${money(a.amountUsd)} for `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`,
+    a.simulated ? h('span', { class: 'badge', style: { marginLeft: '.4rem' } }, 'Test') : null],
+  credits_used: (a) => [`Used 1 credit for invitation ${a.interviewId || ''} at `, h('a', { href: `#/orgs/${a.orgId}` }, a.orgName), ` (balance ${n(a.balanceAfter)})`],
 };
+const AUDIT_FILTERS = [
+  ['', 'All activity'],
+  ['credits_used', 'Credits used'],
+  ['credits_bought', 'Credits bought'],
+  ['credits_free', 'Free credits'],
+  ['credits_adjusted', 'Adjusted by PartWays'],
+  ['team', 'Team changes'],
+];
 
 export async function auditLog() {
   setCrumbs('Audit log');
   const { entries } = await bms('/api/bms/audit');
-  return h('div', { class: 'stack' },
-    head('Audit log', 'Every change made from the BMS, newest first.'),
-    card(null, table([
+  const slot = h('div');
+  let kind = '', q = '';
+  const show = () => {
+    const t = q.trim().toLowerCase();
+    const rows = entries.filter((a) => (!kind || (kind === 'team' ? a.action.startsWith('team_') : a.action === kind))
+      && (!t || `${a.orgName || ''} ${a.by || ''} ${a.interviewId || ''} ${a.member || ''}`.toLowerCase().includes(t)));
+    slot.replaceChildren(card(null, table([
       { label: 'When', cell: (a) => fmt.dateTime(a.at) },
-      { label: 'Who', cell: (a) => a.by },
+      // Credit lines from before who-did-what was recorded have no name.
+      { label: 'Who', cell: (a) => a.by || h('span', { class: 'muted' }, '–') },
       { label: 'What', cell: (a) => (ACTION[a.action] ? ACTION[a.action](a) : a.action) },
-    ], entries, { empty: 'No changes yet.' })));
+    ], rows, { empty: kind || t ? 'Nothing matches this filter.' : 'No activity yet.' })));
+  };
+  show();
+  return h('div', { class: 'stack' },
+    head('Audit log', 'Changes made in the BMS and every organisation\'s credit activity, newest first.'),
+    h('div', { class: 'toolbar' },
+      h('select', { 'aria-label': 'Show', style: { maxWidth: '240px' }, onchange: (e) => { kind = e.target.value; show(); } }, AUDIT_FILTERS.map(([v, l]) => h('option', { value: v }, l))),
+      h('input', { type: 'search', placeholder: 'Search by organisation, person or Interview Id', 'aria-label': 'Search the audit log', oninput: debounce((e) => { q = e.target.value; show(); }, 150) })),
+    slot);
 }
